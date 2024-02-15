@@ -16,6 +16,9 @@ from shared_vars import gm
 from user_setting import UserSetting
 from utils import send_async, display_name, game_is_running
 
+from telegram import ParseMode, InlineKeyboardMarkup, \
+    InlineKeyboardButton, Update
+
 logger = logging.getLogger(__name__)
 
 class Countdown(object):
@@ -46,12 +49,14 @@ def do_skip(bot, player, job_queue=None):
             pass
 
         n = skipped_player.waiting_time
+        choice = [[InlineKeyboardButton(text=_("Make your choice!"), switch_inline_query_current_chat='')]]
         send_async(bot, chat.id,
                    text=__("Waiting time to skip this player has "
                         "been reduced to {time} seconds.\n"
                         "Next player: {name}", multi=game.translate)
                    .format(time=n,
                            name=display_name(next_player.user))
+                   reply_markup=InlineKeyboardMarkup(choice)
         )
         logger.info("{player} was skipped! "
                     .format(player=display_name(player.user)))
