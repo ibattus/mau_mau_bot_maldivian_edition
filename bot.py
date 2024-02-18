@@ -90,9 +90,11 @@ def new_game(update: Update, context: CallbackContext):
         game.starter = update.message.from_user
         game.owner.append(update.message.from_user.id)
         game.mode = DEFAULT_GAMEMODE
+        choice = [[InlineKeyboardButton(text=_("Choose Game Mode!"), switch_inline_query_current_chat='')]]
         send_async(context.bot, chat_id,
                    text=_("Created a new game! Join the game with /join "
-                          "and start the game with /start"))
+                          "and start the game with /start"),
+                   reply_markup=InlineKeyboardMarkup(choice))
 
 
 @user_locale
@@ -136,6 +138,14 @@ def join_game(update: Update, context: CallbackContext):
     """Handler for the /join command"""
     chat = update.message.chat
 
+    try:
+        game = gm.chatid_games[chat.id][-1]
+    except (KeyError, IndexError):
+        send_async(context.bot, chat.id,
+                   text=_("There is no game running in this chat. Create "
+                          "a new one with /new"))
+        return
+
     if update.message.chat.type == 'private':
         help_handler(update, context)
         return
@@ -165,9 +175,17 @@ def join_game(update: Update, context: CallbackContext):
                    reply_to_message_id=update.message.message_id)
 
     else:
-        send_async(context.bot, chat.id,
-                   text=_("Joined the game"),
-                   reply_to_message_id=update.message.message_id)
+        choice = [[InlineKeyboardButton(text=_("Choose Game Mode!"), switch_inline_query_current_chat='')]]
+        if game.started:
+            send_async(context.bot, chat.id,
+                       text=_("Joined the game"),
+                       reply_to_message_id=update.message.message_id)
+
+        else:
+            send_async(context.bot, chat.id,
+                       text=_("Joined the game. /start to start the game."),
+                       reply_to_message_id=update.message.message_id,
+                       reply_markup=InlineKeyboardMarkup(choice))
 
 
 @user_locale
@@ -201,10 +219,12 @@ def leave_game(update: Update, context: CallbackContext):
 
     else:
         if game.started:
+            choice = [[InlineKeyboardButton(text=_("Make your choice!"), switch_inline_query_current_chat='')]]
             send_async(context.bot, chat.id,
                        text=__("Okay. Next Player: {name}",
                                multi=game.translate).format(
                            name=display_name(game.current_player.user)),
+                       reply_markup=InlineKeyboardMarkup(choice),
                        reply_to_message_id=update.message.message_id)
         else:
             send_async(context.bot, chat.id,
@@ -271,10 +291,12 @@ def kick_player(update: Update, context: CallbackContext):
                 reply_to_message_id=update.message.message_id)
             return
 
+        choice = [[InlineKeyboardButton(text=_("Make your choice!"), switch_inline_query_current_chat='')]]
         send_async(context.bot, chat.id,
                    text=__("Okay. Next Player: {name}",
                            multi=game.translate).format(
                        name=display_name(game.current_player.user)),
+                   reply_markup=InlineKeyboardMarkup(choice),
                    reply_to_message_id=update.message.message_id)
 
     else:
